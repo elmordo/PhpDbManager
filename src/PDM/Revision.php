@@ -49,7 +49,7 @@ class PDM_Revision
 
     public function __construct($path, $revisionName)
     {
-        $this->path = $path;
+        $this->setPath($path);
         $this->revisionName = $revisionName;
     }
 
@@ -119,6 +119,11 @@ class PDM_Revision
     {
         return $this->sqlApplyFound && $this->sqlRevertFound
             && $this->infoFound;
+    }
+
+    public function setPath($val)
+    {
+        $this->path = \PDM_Utils::normalizeDirPath($val);
     }
 
 }

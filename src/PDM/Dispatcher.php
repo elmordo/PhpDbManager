@@ -17,7 +17,42 @@ class PDM_Dispatcher
 
     public function dispatch(array $parameters)
     {
-        # code...
+        // remove first parameter with script path
+        array_shift($parameters);
+
+        if (!$parameters)
+        {
+            // param list is empty -> display help
+            echo "Available commands" . PHP_EOL . PHP_EOL;
+
+            foreach ($this->controllers as $name => $controller)
+            {
+                echo $name . " - " . $controller->getDescription() . PHP_EOL;
+            }
+
+            return;
+        }
+
+        $controllerName = array_shift($parameters);
+        $controller = $this->controllers[$controllerName];
+
+        if (!$parameters)
+        {
+            // no parameter left
+            echo "Controller: " . $controllerName . PHP_EOL . PHP_EOL;
+
+            $actions = $controller->getActions();
+
+            foreach ($actions as $actionName)
+            {
+                echo $actionName . " - " . $controller->getActionDescription($actionName) . PHP_EOL;
+            }
+
+            return;
+        }
+
+        $actionName = array_shift($parameters);
+        $controller->callAction($actionName, $parameters);
     }
 
     /**

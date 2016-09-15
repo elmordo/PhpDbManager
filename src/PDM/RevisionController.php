@@ -6,12 +6,18 @@ class PDM_RevisionController extends PDM_AbstractController
     public function createAction(array $params)
     {
         // generate new file name
-        $user = system("whoami");
+        $user = trim(shell_exec("whoami"));
 
-        if (!$user)
-        {
-            echo "kunda";
-        }
+        // generate base file name
+        $baseName = sprintf("%s_%s", date("Ymd_Hms"), $user);
+
+        // get file path
+        $path = getenv("PDM_PATH") ?: __DIR__;
+
+        $revisionManager = PDM_RevisionManager::createManager($path);
+        $revision = $revisionManager->createRevision($baseName, $user);
+
+
     }
 
     /**
