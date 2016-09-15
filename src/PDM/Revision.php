@@ -9,7 +9,7 @@ class PDM_Revision
 
     const FILE_INFO = "info";
 
-    const FILE_OK = "ok";
+    const FLAG_APPLIED = "ok";
 
     /**
      * base name of revision
@@ -45,7 +45,19 @@ class PDM_Revision
      * true if revision is marked as applied
      * @var boolean
      */
-    private $okFound = false;
+    private $applied = false;
+
+    /**
+     * set of parent revision names
+     * @var array
+     */
+    private $parents = array();
+
+    /**
+     * set of child revision names
+     * @var array
+     */
+    private $children = array();
 
     public function __construct($path, $revisionName)
     {
@@ -75,13 +87,31 @@ class PDM_Revision
             $this->sqlRevertFound = $status;
             break;
 
-            case self::FILE_OK:
+            case self::FLAG_APPLIED:
             $this->okFound = $status;
             break;
 
             default:
             throw new \DomainException("Unknonw file type '$fileType'");
         }
+    }
+
+    /**
+     * add parent revision
+     * @param string $revisionName name of revision
+     */
+    public function addParent($revisionName)
+    {
+        $this->parents[] = $revisionName;
+    }
+
+    /**
+     * add child revision
+     * @param string $revisionName name of revision
+     */
+    public function addChild($revisionName)
+    {
+        $this->children[] = $revisionName;
     }
 
     /**
@@ -103,7 +133,7 @@ class PDM_Revision
             case self::FILE_RSQL:
             return $this->sqlRevertFound;
 
-            case self::FILE_OK:
+            case self::FLAG_APPLIED:
             return $this->okFound;
 
             default:
