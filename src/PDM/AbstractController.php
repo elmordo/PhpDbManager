@@ -35,7 +35,7 @@ abstract class PDM_AbstractController implements PDM_ControllerInterface
      * return action messages
      * @return array set of messages
      */
-    function getMessages()
+    public function getMessages()
     {
         return $this->messages;
     }
@@ -46,7 +46,7 @@ abstract class PDM_AbstractController implements PDM_ControllerInterface
      * @param  array  $params     parameters
      * @return bool               action result
      */
-    function callAction($actionName, array $params)
+    public function callAction($actionName, array $params)
     {
         $methodName = $actionName . self::ACTION_POSTFIX;
 
@@ -56,6 +56,16 @@ abstract class PDM_AbstractController implements PDM_ControllerInterface
         }
 
         $this->{$methodName}($params);
+    }
+
+    protected function createManager()
+    {
+        // get file path
+        $path = getenv("PDM_PATH") ?: __DIR__;
+
+        $revisionManager = PDM_RevisionManager::createManager($path);
+
+        return $revisionManager;
     }
 
 }

@@ -37,6 +37,7 @@ function getArguments()
 
 $dispatcher = new PDM_Dispatcher();
 $dispatcher->registerController("revision", new PDM_RevisionController());
+$dispatcher->registerController("db", new PDM_DbController());
 
 $args = getArguments();
 

@@ -48,19 +48,19 @@ class PDM_Revision
     private $applied = false;
 
     /**
-     * set of parent revision names
-     * @var array
+     * information about revision
+     * @var PDM_RevisionInfo
      */
-    private $parents = array();
+    private $info = null;
 
     /**
-     * set of child revision names
-     * @var array
+     * initialize revision instance
+     * @param string $path         path to directory
+     * @param string $revisionName revision name
      */
-    private $children = array();
-
     public function __construct($path, $revisionName)
     {
+        $this->info = new PDM_RevisionInfo();
         $this->setPath($path);
         $this->revisionName = $revisionName;
     }
@@ -96,22 +96,9 @@ class PDM_Revision
         }
     }
 
-    /**
-     * add parent revision
-     * @param string $revisionName name of revision
-     */
-    public function addParent($revisionName)
+    public function getInfo()
     {
-        $this->parents[] = $revisionName;
-    }
-
-    /**
-     * add child revision
-     * @param string $revisionName name of revision
-     */
-    public function addChild($revisionName)
-    {
-        $this->children[] = $revisionName;
+        return $this->info;
     }
 
     /**
@@ -154,6 +141,16 @@ class PDM_Revision
     public function setPath($val)
     {
         $this->path = \PDM_Utils::normalizeDirPath($val);
+    }
+
+    public function getPath()
+    {
+        return $this->path;
+    }
+
+    public function getRevisionName()
+    {
+        return $this->revisionName;
     }
 
 }

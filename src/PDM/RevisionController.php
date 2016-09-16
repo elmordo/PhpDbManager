@@ -11,13 +11,26 @@ class PDM_RevisionController extends PDM_AbstractController
         // generate base file name
         $baseName = sprintf("%s_%s", date("Ymd_Hms"), $user);
 
-        // get file path
-        $path = getenv("PDM_PATH") ?: __DIR__;
+        $revisionManager = $this->createManager();
+        $unappliedHeads = $revisionManager->getNotAppliedHeads();
 
-        $revisionManager = PDM_RevisionManager::createManager($path);
+        if ($unappliedHeads)
+        {
+            echo "There some unapplied changes - cannot crete new revision." . PHP_EOL;
+            echo "unapplied changes are: " . PHP_EOL;
+
+            foreach ($unappliedHeads as $head)
+                echo $head . PHP_EOL;
+
+            return;
+        }
+
         $revision = $revisionManager->createRevision($baseName, $user);
 
+        $revisionManager->save();
 
+        echo "Revision was created." . PHP_EOL;
+        echo "Revision name is: '$baseName'" . PHP_EOL;
     }
 
     /**
