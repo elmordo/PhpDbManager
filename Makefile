@@ -4,12 +4,13 @@ OUTPUT_FILE="phpDbManager.php"
 
 .PHONY: all
 
+
+all: main
+	rm $(TMP_FILE)
+
 prepare:
-	TMP_FILE=$(shell mktemp _buildXXXX.php)
+	TMP_FILE=mktemp _buildXXXX.php
 	echo $(TMP_FILE)
 
 main: prepare
-	echo "preprare"
 
-all: main
-	$(shell rm $$TMP_FILE)

@@ -132,16 +132,49 @@ class PDM_RevisionManager
             $revision);
 
         $connection = $this->getConnection();
+        $connection->beginTransaction();
+        $revert = false;
 
-        for ($i = 0; $i < count($revisions); ++$i)
+        try
         {
-            // get revision
-            $revisionName = $revisions[$i];
-            $currentRevision = $this->revisionInstances[$revisionName];
+            for ($i = 0; $i < count($revisions); ++$i)
+            {
+                // get revision
+                $revisionName = $revisions[$i];
+                $currentRevision = $this->revisionInstances[$revisionName];
 
-            $updateFileName = $this->path . $revisionName . self::SUFFIX_APPLY;
-            $sql = file_get_contents($updateFileName);
+
+                $updateFileName = $this->path . $revisionName . self::SUFFIX_APPLY;
+                if (!$this->applyFile($updateFileName, $connection))
+                {
+                    $revert = true;
+                    break;
+                }
+            }
+
+            $connection->commit();
         }
+        catch (\Exception $e)
+        {
+            $revert = true;
+            $connection->rollback();
+        }
+
+        if ($revert)
+        {
+            // some error ocours - revert db to initial state
+            for (; $i >= 0; --$i)
+            {
+                // get revision
+                $revisionName = $revisions[$i];
+                $currentRevision = $this->revisionInstances[$revisionName];
+
+                $revertFileName = $this->path . $revisionName . self::SUFFIX_REVERT;
+                $this->applyFile($revertFileName, $connection);
+            }
+        }
+
+        return !$revert;
     }
 
     /**
@@ -369,6 +402,31 @@ class PDM_RevisionManager
         $manager->reload();
 
         return $manager;
+    }
+
+    private function applyFile($fileName, $connection)
+    {
+        $retVal = true;
+
+        $sql = file_get_contents($fileName);
+
+        try
+        {
+            $stmt = $connection->query($sql);
+
+            if (!$stmt)
+            {
+                $retVal = false;
+
+            }
+        }
+        catch (PDOException $e)
+        {
+            // some cock sucking error
+            $retVal = false;
+        }
+
+        return $retVal;
     }
 
 }
