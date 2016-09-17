@@ -39,29 +39,34 @@ class PDM_Dispatcher
         if (!$parameters)
         {
             // no parameter left
-            echo "Controller: " . $controllerName . PHP_EOL . PHP_EOL;
-
-            $actions = $controller->getActions();
-
-            foreach ($actions as $actionName)
-            {
-                echo $actionName . " - " . $controller->getActionDescription($actionName) . PHP_EOL;
-            }
-
+            $this->printControllerHelp($controllerName);
             return;
         }
 
         $actionName = array_shift($parameters);
-        $controller->callAction($actionName, $parameters);
+
+        try
+        {
+            $controller->callAction($actionName, $parameters);
+        }
+        catch (\DomainException $e)
+        {
+            echo "Action '$actionName' does not exists" . PHP_EOL;
+            $this->printControllerHelp($controllerName);
+        }
     }
 
-    /**
-     * return set of supported actions
-     * @return array set of supported actions
-     */
-    public function getAvailableActions()
+    public function printControllerHelp($controllerName)
     {
-        return [ self::ACTION_CREATE => _("Create new revision") ];
+        echo "Controller: " . $controllerName . PHP_EOL . PHP_EOL;
+        $controller = $this->controllers[$controllerName];
+
+        $actions = $controller->getActions();
+
+        foreach ($actions as $actionName)
+        {
+            echo $actionName . " - " . $controller->getActionDescription($actionName) . PHP_EOL;
+        }
     }
 
 }

@@ -31,6 +31,7 @@ class PDM_DbController extends PDM_AbstractController
         }
 
         $manager->updateTo($heads[0]);
+        $manager->save();
     }
 
     public function revertAction(array $params)

@@ -33,6 +33,33 @@ class PDM_RevisionController extends PDM_AbstractController
         echo "Revision name is: '$baseName'" . PHP_EOL;
     }
 
+    public function rescanAction(array $params)
+    {
+        $manager = $this->createManager();
+        $oldRevisions = $manager->getRevisions();
+        $manager->rescanDirectory();
+        $newRevisions = $manager->getRevisions();
+
+        if ($oldRevisions === $newRevisions)
+        {
+            echo _("No new revision found") . PHP_EOL;
+        }
+        else
+        {
+            echo _("New revisions found:") . PHP_EOL;
+
+            foreach ($newRevisions as $revisionName)
+            {
+                if (!in_array($revisionName, $oldRevisions))
+                {
+                    echo $revisionName . PHP_EOL;
+                }
+            }
+        }
+
+        $manager->save();
+    }
+
     /**
      * return description of whole controller
      * @return string info
@@ -48,7 +75,7 @@ class PDM_RevisionController extends PDM_AbstractController
      */
     public function getActions()
     {
-        return [ "create" ];
+        return [ "create", "rescan" ];
     }
 
     /**
@@ -59,8 +86,11 @@ class PDM_RevisionController extends PDM_AbstractController
     public function getActionDescription($actionName)
     {
         switch ($actionName) {
-            case 'create':
+            case "create":
             return "Create new revision";
+
+            case "rescan":
+            return "Scan revision directory for new revisions";
 
             default:
             throw new \DomainException("Action '$actionName' is not supported");

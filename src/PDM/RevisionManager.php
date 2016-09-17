@@ -143,14 +143,16 @@ class PDM_RevisionManager
                 $revisionName = $revisions[$i];
                 $currentRevision = $this->revisionInstances[$revisionName];
 
-
                 $updateFileName = $this->path . $revisionName . self::SUFFIX_APPLY;
+
                 if (!$this->applyFile($updateFileName, $connection))
                 {
                     $revert = true;
                     break;
                 }
             }
+
+            $this->currentRevision = $revision;
 
             $connection->commit();
         }
@@ -206,8 +208,19 @@ class PDM_RevisionManager
         $this->currentHead = $config["current_revision"];
         $this->dbParams = $config["db_params"];
 
-
         $this->reloadRevisions();
+    }
+
+    public function rescanDirectory()
+    {
+        // refresh file list
+        $dir = dir($this->path);
+
+        while ($fileName = $dir->read())
+        {
+            // extract revision name
+            $revisionName = $this->extractRevisionName($fileName);
+        }
     }
 
     public function getNotAppliedHeads()
@@ -232,6 +245,15 @@ class PDM_RevisionManager
     public function getCurrentRevision()
     {
         return $this->currentRevision;
+    }
+
+    /**
+     * return set of revision name
+     * @return array set of revisions
+     */
+    public function getRevisions()
+    {
+        return $this->revisions;
     }
 
     public function getRevisionApplyOrder($start, $end)
@@ -285,7 +307,7 @@ class PDM_RevisionManager
         $config = [
             "revisions" => [],
             "revision_patterns" => [
-                "/(^[0-9]{6}_[0-9]{6}_[a-zA-Z0-9]+)/"
+                "/(^[0-9]{8}_[0-9]{6}_[a-zA-Z0-9]+)/"
             ],
             "current_revision" => null,
             "db_params" => [
@@ -385,9 +407,10 @@ class PDM_RevisionManager
     /**
      * create instance of manager
      * @param  string $path path to directory with revisions
+     * @param  boolean $loadData auto load data
      * @return PDM_RevisionManager       manager instance
      */
-    public static function createManager($path)
+    public static function createManager($path, $loadData=true)
     {
         $path = PDM_Utils::normalizeDirPath($path);
 
@@ -399,7 +422,11 @@ class PDM_RevisionManager
         }
 
         $manager = new self($path);
-        $manager->reload();
+
+        if ($loadData)
+        {
+            $manager->reload();
+        }
 
         return $manager;
     }
@@ -427,6 +454,22 @@ class PDM_RevisionManager
         }
 
         return $retVal;
+    }
+
+    public function extractRevisionName($fileName)
+    {
+        foreach ($this->revisionPatterns as $pattern)
+        {
+            $match = [];
+
+            if (preg_match($pattern, $fileName, $match))
+            {
+                if (!in_array($match[1], $this->revisions))
+                {
+                    $this->revisions[] = $match[1];
+                }
+            }
+        }
     }
 
 }
