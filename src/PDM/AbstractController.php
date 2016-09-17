@@ -61,7 +61,9 @@ abstract class PDM_AbstractController implements PDM_ControllerInterface
     protected function createManager()
     {
         // get file path
-        $path = getenv("PDM_PATH") ?: __DIR__;
+        global $argv;
+
+        $path = getenv("PDM_PATH") ? dirname($argv[0]) : __DIR__;
 
         $revisionManager = PDM_RevisionManager::createManager($path);
 

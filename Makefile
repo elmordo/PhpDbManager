@@ -20,15 +20,17 @@ all: main
 	chmod u+x $(TARGET_DIR)/pdm.php
 	rm $(TEMP_FILE)
 
-main: prepare Dispatcher RevisionController DbController Exception
+main: prepare Dispatcher RevisionController DbController ProjectController Exception
 	$(call apppend_file,main)
-
 
 ControllerInterface:
 	$(call apppend_file,ControllerInterface)
 
 AbstractController: ControllerInterface RevisionManager Utils
 	$(call apppend_file,AbstractController)
+
+ProjectController: AbstractController
+	$(call apppend_file,ProjectController)
 
 DbController: AbstractController
 	$(call apppend_file,DbController)
