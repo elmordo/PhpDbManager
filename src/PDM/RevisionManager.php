@@ -120,7 +120,8 @@ class PDM_RevisionManager
         if (!$this->dbConnection)
         {
             $this->dbConnection = new \PDO($this->dbParams["dsn"],
-                $this->dbParams["username"], $this->dbParams["password"]);
+                $this->dbParams["username"], $this->dbParams["password"],
+                [ \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION ]);
         }
 
         return $this->dbConnection;
@@ -147,11 +148,12 @@ class PDM_RevisionManager
 
                 if (!$this->applyFile($updateFileName, $connection))
                 {
+                    echo "Error when processing file '$updateFileName': " . $e->getMessage() . PHP_EOL;
                     $revert = true;
                     break;
                 }
             }
-
+            die("prdel");
             $this->currentRevision = $revision;
 
             $connection->commit();
@@ -436,15 +438,19 @@ class PDM_RevisionManager
         $retVal = true;
 
         $sql = file_get_contents($fileName);
-
         try
         {
-            $stmt = $connection->query($sql);
+            $retVal = $connection->exec($sql);
+
+            die(var_dump($retVal));
 
             if (!$stmt)
             {
                 $retVal = false;
 
+            }
+            elseif ($stmt->getErrorMessage()) {
+                die(var_dump(expression));
             }
         }
         catch (PDOException $e)

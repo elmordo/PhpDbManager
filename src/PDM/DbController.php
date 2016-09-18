@@ -13,7 +13,7 @@ class PDM_DbController extends PDM_AbstractController
         {
             case 0:
             echo "No revision to apply" . PHP_EOL;
-            break;
+            return;
 
             case 1:
             break;
@@ -29,6 +29,7 @@ class PDM_DbController extends PDM_AbstractController
             echo "Do a merge first" . PHP_EOL;
             return;
         }
+
 
         $manager->updateTo($heads[0]);
         $manager->save();
