@@ -9,6 +9,8 @@ class PDM_RevisionManager
     const SUFFIX_REVERT = "_down.sql";
     const SUFFIX_INFO = ".json";
 
+    const STATEMENT_DELIMITER = "-- EOS";
+
     /**
      * list of known revisions (only names)
      * @var array
@@ -148,24 +150,24 @@ class PDM_RevisionManager
 
                 if (!$this->applyFile($updateFileName, $connection))
                 {
-                    echo "Error when processing file '$updateFileName': " . $e->getMessage() . PHP_EOL;
-                    $revert = true;
-                    break;
+                    echo "Error when processing file '$updateFileName'" . PHP_EOL;
+                    throw new \Exception("Some error happend", 1);
                 }
             }
-            die("prdel");
-            $this->currentRevision = $revision;
 
+            $this->currentRevision = $revision;
             $connection->commit();
         }
         catch (\Exception $e)
         {
             $revert = true;
+            echo "Error: " . $e->getMessage() . PHP_EOL;
             $connection->rollback();
         }
 
         if ($revert)
         {
+            echo "Applying revert file" . PHP_EOL;
             // some error ocours - revert db to initial state
             for (; $i >= 0; --$i)
             {
@@ -174,7 +176,7 @@ class PDM_RevisionManager
                 $currentRevision = $this->revisionInstances[$revisionName];
 
                 $revertFileName = $this->path . $revisionName . self::SUFFIX_REVERT;
-                $this->applyFile($revertFileName, $connection);
+                $this->applyFile($revertFileName, $connection, true);
             }
         }
 
@@ -433,29 +435,44 @@ class PDM_RevisionManager
         return $manager;
     }
 
-    private function applyFile($fileName, $connection)
+    private function applyFile($fileName, $connection, $force=false)
     {
         $retVal = true;
 
+        // read file and split it into statements
         $sql = file_get_contents($fileName);
+        $statements = explode(self::STATEMENT_DELIMITER, $sql);
+
         try
         {
-            $retVal = $connection->exec($sql);
-
-            die(var_dump($retVal));
-
-            if (!$stmt)
+            foreach ($statements as $statement)
             {
-                $retVal = false;
+                try
+                {
+                    echo "Executing statement: " . PHP_EOL;
+                    echo $statement . PHP_EOL;
+                    $connection->exec($statement);
+                }
+                catch (\PDOException $e)
+                {
+                    echo "Error: " . $e->getMessage() . PHP_EOL;
 
-            }
-            elseif ($stmt->getErrorMessage()) {
-                die(var_dump(expression));
+                    if ($force)
+                    {
+                        echo "Force mode is enabled, continuing in executing statements" . PHP_EOL;
+                    }
+                    else
+                    {
+                        $retVal = false;
+                        break;
+                    }
+                }
             }
         }
-        catch (PDOException $e)
+        catch (\Exception $e)
         {
             // some cock sucking error
+            echo "Unexpected error happend: " . $e->getMessage() . PHP_EOL;
             $retVal = false;
         }
 
