@@ -9,7 +9,7 @@ class PDM_RevisionController extends PDM_AbstractController
         $user = trim(shell_exec("whoami"));
 
         // generate base file name
-        $baseName = sprintf("%s_%s", date("Ymd_Hms"), $user);
+        $baseName = sprintf("%s_%s", date("Ymd_His"), $user);
 
         $revisionManager = $this->createManager();
         $unappliedHeads = $revisionManager->getNotAppliedHeads();

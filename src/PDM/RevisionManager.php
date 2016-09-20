@@ -95,10 +95,10 @@ class PDM_RevisionManager
         $info = [ "owner" => $owner, "created_at" => time(), "created_at_hr" => date("c"), "parents" => [] ];
 
         // test parent
-        if ($this->currentHead)
+        if ($this->currentRevision)
         {
-            $info["parents"][] = $this->currentHead;
-            $this->revisionInstances[$this->currentHead]
+            $info["parents"][] = $this->currentRevision;
+            $this->revisionInstances[$this->currentRevision]
                 ->getInfo()->children[] = $revisionName;
         }
 
@@ -131,7 +131,7 @@ class PDM_RevisionManager
 
     public function updateTo($revision)
     {
-        $revisions = $this->getRevisionApplyOrder($this->currentHead,
+        $revisions = $this->getRevisionApplyOrder($this->currentRevision,
             $revision);
 
         $connection = $this->getConnection();
@@ -209,7 +209,7 @@ class PDM_RevisionManager
 
         $this->revisions = $config["revisions"];
         $this->revisionPatterns = $config["revision_patterns"];
-        $this->currentHead = $config["current_revision"];
+        $this->currentRevision = $config["current_revision"];
         $this->dbParams = $config["db_params"];
 
         $this->reloadRevisions();
@@ -233,7 +233,7 @@ class PDM_RevisionManager
 
         foreach ($this->heads as $head)
         {
-            if ($this->currentHead != $head)
+            if ($this->currentRevision != $head)
             {
                 $heads[] = $head;
             }
