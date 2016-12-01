@@ -20,7 +20,7 @@ all: main
 	chmod u+x $(TARGET_DIR)/pdm.php
 	rm $(TEMP_FILE)
 
-main: prepare Dispatcher RevisionController DbController ProjectController Exception
+main: prepare Dispatcher RevisionController DbController ProjectController Exception ServiceLocator Settings
 	$(call apppend_file,main)
 
 ControllerInterface:
@@ -38,7 +38,7 @@ DbController: AbstractController
 RevisionController: AbstractController
 	$(call apppend_file,RevisionController)
 
-Dispatcher: AbstractController
+Dispatcher: AbstractController Injectable
 	$(call apppend_file,Dispatcher)
 
 Exception:
@@ -52,6 +52,15 @@ RevisionInfo:
 
 RevisionManager: Revision
 	$(call apppend_file,RevisionManager)
+
+ServiceLocator:
+	$(call apppend_file,ServiceLocator)
+
+Settings:
+	$(call apppend_file,Settings)
+
+Injectable:
+	$(call apppend_file,Injectable)
 
 Utils:
 	$(call apppend_file,Utils)

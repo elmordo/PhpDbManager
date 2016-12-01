@@ -12,10 +12,10 @@ class PDM_RevisionManager
     const STATEMENT_DELIMITER = "-- EOS";
 
     /**
-     * list of known revisions (only names)
-     * @var array
+     * settings of directory
+     * @var [type]
      */
-    private $revisions = array();
+    private $settings;
 
     /**
      * set of revision instances
@@ -24,18 +24,6 @@ class PDM_RevisionManager
      * @var array
      */
     private $revisionInstances = array();
-
-    /**
-     * set of regular patterns to match revision files
-     * @var array
-     */
-    private $revisionPatterns = array();
-
-    /**
-     * current revision where database is
-     * @var string
-     */
-    private $currentRevision = null;
 
     /**
      * path to directory where revisions are stored
@@ -54,18 +42,6 @@ class PDM_RevisionManager
      * @var array
      */
     private $heads = array();
-
-    /**
-     * parameters for databse connection
-     * @var array
-     */
-    private $dbParams = [];
-
-    /**
-     * connection to DB
-     * @var PDO
-     */
-    private $dbConnection = null;
 
     /**
      * initialize instance
@@ -108,25 +84,9 @@ class PDM_RevisionManager
         $revision = new PDM_Revision($this->path, $revisionName);
         $revision->getInfo()->setFromArray($info);
         $this->revisionInstances[$revisionName] = $revision;
-        $this->revisions[] = $revisionName;
+        $this->settings->revisions[] = $revisionName;
 
         return $revision;
-    }
-
-    /**
-     * return databse PDO connection
-     * @return PDO connection to database
-     */
-    public function getConnection()
-    {
-        if (!$this->dbConnection)
-        {
-            $this->dbConnection = new \PDO($this->dbParams["dsn"],
-                $this->dbParams["username"], $this->dbParams["password"],
-                [ \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION ]);
-        }
-
-        return $this->dbConnection;
     }
 
     public function updateTo($revision)
@@ -134,7 +94,7 @@ class PDM_RevisionManager
         $revisions = $this->getRevisionApplyOrder($this->currentRevision,
             $revision);
 
-        $connection = $this->getConnection();
+        $connection = $this->getSL()->get("db");
         $connection->beginTransaction();
         $revert = false;
 
@@ -248,7 +208,7 @@ class PDM_RevisionManager
      */
     public function getCurrentRevision()
     {
-        return $this->currentRevision;
+        return $this->settings->currentRevision;
     }
 
     /**
@@ -289,16 +249,7 @@ class PDM_RevisionManager
      */
     public function save()
     {
-        // genrate config data
-        $data = [
-            "current_revision" => $this->currentRevision,
-            "revisions" => $this->revisions,
-            "revision_patterns" => $this->revisionPatterns,
-            "db_params" => $this->dbParams,
-        ];
-
-        file_put_contents($this->path . self::CONFIG_FILE, json_encode($data,
-            JSON_PRETTY_PRINT));
+        $this->settings->save($this->path . self::CONFIG_FILE);
     }
 
     /**
@@ -308,20 +259,8 @@ class PDM_RevisionManager
     public function initializeDirectory()
     {
         // initialize config file
-        $config = [
-            "revisions" => [],
-            "revision_patterns" => [
-                "/(^[0-9]{8}_[0-9]{6}_[a-zA-Z0-9]+)/"
-            ],
-            "current_revision" => null,
-            "db_params" => [
-                "dsn" => "mysql:host=localhost;dbname=guitarian",
-                "username" => "root",
-                "password" => ""
-            ],
-        ];
-
-        file_put_contents($this->path . self::CONFIG_FILE, json_encode($config, JSON_PRETTY_PRINT));
+        $this->settings = new PDM_Settings();
+        $this->save();
 
         echo "Directory " . $this->path . " is initialized. Please update your CMS ignore file" . PHP_EOL;
         echo "Update database connection settings in " . self::CONFIG_FILE . "." . PHP_EOL;

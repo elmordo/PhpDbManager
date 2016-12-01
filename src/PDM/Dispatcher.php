@@ -1,12 +1,14 @@
 <?php
 
-class PDM_Dispatcher
+class PDM_Dispatcher extends PDM_Injectable
 {
 
     private $controllers = array();
 
     public function getControllers()
     {
+        parent::__construct();
+
         return $this->controllers;
     }
 
