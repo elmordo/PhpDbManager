@@ -12,6 +12,8 @@ class PDM_Settings
 
     const CURRENT_VERSION = "1.0";
 
+    private $stored = false;
+
     public $version;
 
     public $currentRevision;
@@ -24,18 +26,29 @@ class PDM_Settings
 
     public static function loadFromFile($fileName="pdm.json")
     {
-        $data = is_file($fileName) ? json_decode(file_get_contents($fileName)) : [];
+        if (is_file($fileName))
+        {
+            $data = json_decode(file_get_contents($fileName), true);
+            $stored = true;
+        }
+        else
+        {
+            $data = [];
+            $stored = false;
+        }
 
-        return new self($data);
+        return new self($data, $stored);
     }
 
-    public function __construct(array $data=array())
+    public function __construct(array $data=array(), $stored=true)
     {
         $this->fromArray($data);
+        $this->stored = $stored;
     }
     public function save($fileName="pdm.json")
     {
-        file_put_contents($fileName, json_encode($this->toArray()));
+        file_put_contents(
+            $fileName, json_encode($this->toArray(), JSON_PRETTY_PRINT));
     }
 
     public function toArray()
@@ -56,6 +69,11 @@ class PDM_Settings
         $this->setValueOrDefault($this->currentRevision, $data, self::ITEM_CURRENT_REVISION, null);
         $this->setValueOrDefault($this->revisionPatterns, $data, self::ITEM_REVISION_PATTERNS, $this->getDefaultPatterns());
         $this->setValueOrDefault($this->dbParams, $data, self::ITEM_DB_PARAMS, $this->getSampleDbParams());
+    }
+
+    public function isStored()
+    {
+        return $this->stored;
     }
 
     public function getDefaultPatterns()

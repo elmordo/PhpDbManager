@@ -40,12 +40,29 @@ $locator = new PDM_ServiceLocator();
 
 // load configuration
 $settings = PDM_Settings::loadFromFile("./pdm.json");
+
+if (!$settings->isStored())
+{
+    $settings->save("./pdm.json");
+    echo "Initial configuration was saved into pdm.json" . PHP_EOL;
+}
+
 $locator->set("settings", $settings);
 
 // connect to database
-$connection = new \PDO($settings->dbParams["dsn"],
-    $settings->dbParams["username"], $settings->dbParams["password"],
-    [ \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION ]);
+try
+{
+    $connection = new \PDO($settings->dbParams["dsn"],
+        $settings->dbParams["username"], $settings->dbParams["password"],
+        [ \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION ]);
+}
+catch (PDOException $e)
+{
+    echo "Unable to connect to database. " .
+        "Please update your settings in pdm.json file" . PHP_EOL;
+    exit(1);
+}
+
 $locator->set("db", $connection);
 
 // create dispatcher and register it into service locator
