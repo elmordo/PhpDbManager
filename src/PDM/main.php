@@ -1,5 +1,12 @@
 <?php
 
+define("PDM_CONFIG_FILENAME", "pdm.json");
+
+if (!function_exists("_"))
+{
+    function _($msg) { return $msg; };
+}
+
 spl_autoload_register(function ($name)
     {
         $parts = explode("_", $name);
@@ -38,8 +45,12 @@ function getArguments()
 // create and setup service locator
 $locator = new PDM_ServiceLocator();
 
+
+$path = getenv("PDM_PATH") ? getenv("PDM_PATH") : dirname($argv[0]);
+$path = PDM_Utils::normalizeDirPath($path) . PDM_CONFIG_FILENAME;
+
 // load configuration
-$settings = PDM_Settings::loadFromFile("./pdm.json");
+$settings = PDM_Settings::loadFromFile($path);
 
 if (!$settings->isStored())
 {
@@ -64,6 +75,9 @@ catch (PDOException $e)
 }
 
 $locator->set("db", $connection);
+
+$revisionManager = new PDM_RevisionManager();
+$locator->set("revision_manager", $revisionManager);
 
 // create dispatcher and register it into service locator
 $dispatcher = new PDM_Dispatcher();

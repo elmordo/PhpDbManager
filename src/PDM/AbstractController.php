@@ -1,7 +1,8 @@
 <?php
 
 
-abstract class PDM_AbstractController implements PDM_ControllerInterface
+abstract class PDM_AbstractController
+    extends PDM_Injectable implements PDM_ControllerInterface
 {
 
     const ACTION_POSTFIX = "Action";
@@ -48,6 +49,8 @@ abstract class PDM_AbstractController implements PDM_ControllerInterface
      */
     public function callAction($actionName, array $params)
     {
+        parent::__construct();
+
         $methodName = $actionName . self::ACTION_POSTFIX;
 
         if (!method_exists($this, $methodName))
@@ -56,18 +59,6 @@ abstract class PDM_AbstractController implements PDM_ControllerInterface
         }
 
         $this->{$methodName}($params);
-    }
-
-    protected function createManager()
-    {
-        // get file path
-        global $argv;
-
-        $path = getenv("PDM_PATH") ? getenv("PDM_PATH") : dirname($argv[0]);
-
-        $revisionManager = PDM_RevisionManager::createManager($path);
-
-        return $revisionManager;
     }
 
 }

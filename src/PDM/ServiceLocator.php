@@ -13,6 +13,11 @@ class PDM_ServiceLocator
             self::$defaultInstance = $this;
     }
 
+    static public function getDefault()
+    {
+        return self::$defaultInstance;
+    }
+
     public function set($name, $instance)
     {
         $this->services[$name] = $instance;
@@ -20,7 +25,12 @@ class PDM_ServiceLocator
 
     public function get($name)
     {
-        if (!isset($this->services[$name]));
+        if (!isset($this->services[$name]))
+        {
+            throw Exception("Service is not registered");
+        }
+
+        return $this->services[$name];
     }
 
 }

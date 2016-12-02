@@ -11,7 +11,7 @@ class PDM_RevisionController extends PDM_AbstractController
         // generate base file name
         $baseName = sprintf("%s_%s", date("Ymd_His"), $user);
 
-        $revisionManager = $this->createManager();
+        $revisionManager = $this->getSL()->get("revision_manager");
         $unappliedHeads = $revisionManager->getNotAppliedHeads();
 
         if ($unappliedHeads)
@@ -27,7 +27,7 @@ class PDM_RevisionController extends PDM_AbstractController
 
         $revision = $revisionManager->createRevision($baseName, $user);
 
-        $revisionManager->save();
+        $this->getSL()->get("settings")->save();
 
         echo "Revision was created." . PHP_EOL;
         echo "Revision name is: '$baseName'" . PHP_EOL;
@@ -35,10 +35,12 @@ class PDM_RevisionController extends PDM_AbstractController
 
     public function rescanAction(array $params)
     {
-        $manager = $this->createManager();
-        $oldRevisions = $manager->getRevisions();
+        $manager = $this->getSL()->get("revision_manager");
+        $settings = $this->getSL()->get("settings");
+
+        $oldRevisions = $settings->revisions;
         $manager->rescanDirectory();
-        $newRevisions = $manager->getRevisions();
+        $newRevisions = $settings->revisions;
 
         if ($oldRevisions === $newRevisions)
         {
@@ -57,7 +59,7 @@ class PDM_RevisionController extends PDM_AbstractController
             }
         }
 
-        $manager->save();
+        $this->getSL()->get("settings")->save();
     }
 
     /**

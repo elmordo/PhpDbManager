@@ -1,6 +1,6 @@
 <?php
 
-class PDM_RevisionManager
+class PDM_RevisionManager extends PDM_Injectable
 {
 
     const CONFIG_FILE = "pdm.json";
@@ -10,12 +10,6 @@ class PDM_RevisionManager
     const SUFFIX_INFO = ".json";
 
     const STATEMENT_DELIMITER = "-- EOS";
-
-    /**
-     * settings of directory
-     * @var [type]
-     */
-    private $settings;
 
     /**
      * set of revision instances
@@ -47,9 +41,9 @@ class PDM_RevisionManager
      * initialize instance
      * @param string $path path to directory with revisions
      */
-    public function __construct($path)
+    public function __construct()
     {
-        $this->path = $path;
+        parent::__construct();
     }
 
     /**
@@ -60,8 +54,11 @@ class PDM_RevisionManager
      */
     public function createRevision($revisionName, $owner)
     {
+        parent::__construct();
+
         // create files
-        $basePath = $this->path . $revisionName;
+        $settings = $this->getSL()->get("settings");
+        $basePath = $settings->getDirectory() . "/" . $revisionName;
 
         // empty SQL files
         touch($basePath . self::SUFFIX_APPLY);
@@ -71,10 +68,10 @@ class PDM_RevisionManager
         $info = [ "owner" => $owner, "created_at" => time(), "created_at_hr" => date("c"), "parents" => [] ];
 
         // test parent
-        if ($this->currentRevision)
+        if ($settings->currentRevision)
         {
-            $info["parents"][] = $this->currentRevision;
-            $this->revisionInstances[$this->currentRevision]
+            $info["parents"][] = $settings->currentRevision;
+            $this->revisionInstances[$settings->currentRevision]
                 ->getInfo()->children[] = $revisionName;
         }
 
@@ -84,15 +81,16 @@ class PDM_RevisionManager
         $revision = new PDM_Revision($this->path, $revisionName);
         $revision->getInfo()->setFromArray($info);
         $this->revisionInstances[$revisionName] = $revision;
-        $this->settings->revisions[] = $revisionName;
+        $settings->revisions[] = $revisionName;
 
         return $revision;
     }
 
     public function updateTo($revision)
     {
-        $revisions = $this->getRevisionApplyOrder($this->currentRevision,
-            $revision);
+        $settings = $this->getSL()->get("settings");
+        $revisions = $this->getRevisionApplyOrder(
+            $settings->currentRevision, $revision);
 
         $connection = $this->getSL()->get("db");
         $connection->beginTransaction();
@@ -178,12 +176,23 @@ class PDM_RevisionManager
     public function rescanDirectory()
     {
         // refresh file list
-        $dir = dir($this->path);
+        $settings = $this->getSL()->get("settings");
+        $dir = dir($settings->getDirectory());
 
         while ($fileName = $dir->read())
         {
             // extract revision name
-            $revisionName = $this->extractRevisionName($fileName);
+            try
+            {
+                $revisionName = $this->extractRevisionName($fileName, $settings->revisionPatterns);
+
+                if (!in_array($revisionName, $settings->revisions))
+                    $settings->revisions[] = $revisionName;
+            }
+            catch (Exception $e)
+            {
+                // nothing to do
+            }
         }
     }
 
@@ -242,14 +251,6 @@ class PDM_RevisionManager
         }
 
         return array_reverse($reverseRevisions);
-    }
-
-    /**
-     * save new information into local config file
-     */
-    public function save()
-    {
-        $this->settings->save($this->path . self::CONFIG_FILE);
     }
 
     /**
@@ -418,20 +419,19 @@ class PDM_RevisionManager
         return $retVal;
     }
 
-    public function extractRevisionName($fileName)
+    public function extractRevisionName($fileName, array $patterns)
     {
-        foreach ($this->revisionPatterns as $pattern)
+        foreach ($patterns as $pattern)
         {
             $match = [];
 
             if (preg_match($pattern, $fileName, $match))
             {
-                if (!in_array($match[1], $this->revisions))
-                {
-                    $this->revisions[] = $match[1];
-                }
+                return $match[1];
             }
         }
+
+        throw new Exception("Filename does not match");
     }
 
 }

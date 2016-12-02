@@ -12,6 +12,8 @@ class PDM_Settings
 
     const CURRENT_VERSION = "1.0";
 
+    private $fileName;
+
     private $stored = false;
 
     public $version;
@@ -37,18 +39,19 @@ class PDM_Settings
             $stored = false;
         }
 
-        return new self($data, $stored);
+        return new self($fileName, $data, $stored);
     }
 
-    public function __construct(array $data=array(), $stored=true)
+    public function __construct($fileName, array $data=array(), $stored=true)
     {
         $this->fromArray($data);
         $this->stored = $stored;
+        $this->fileName = $fileName;
     }
-    public function save($fileName="pdm.json")
+    public function save()
     {
         file_put_contents(
-            $fileName, json_encode($this->toArray(), JSON_PRETTY_PRINT));
+            $this->fileName, json_encode($this->toArray(), JSON_PRETTY_PRINT));
     }
 
     public function toArray()
@@ -78,7 +81,12 @@ class PDM_Settings
 
     public function getDefaultPatterns()
     {
-        return [ "/(^[0-9]{8}_[0-9]{6}_[a-zA-Z0-9 _]+)/" ];
+        return [ "/(^[0-9]{8}_[0-9]{6}_[a-zA-Z0-9 _]+)\.json$/" ];
+    }
+
+    public function getDirectory()
+    {
+        return dirname($this->fileName);
     }
 
     public function getSampleDbParams()
