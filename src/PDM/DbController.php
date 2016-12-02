@@ -6,7 +6,7 @@ class PDM_DbController extends PDM_AbstractController
 
     public function updateAction(array $params)
     {
-        $manager = $this->createManager();
+        $manager = $this->getSL()->get("revision_manager");
         $heads = $manager->getNotAppliedHeads();
 
         switch (count($heads))
