@@ -78,6 +78,7 @@ $locator->set("db", $connection);
 
 $revisionManager = new PDM_RevisionManager();
 $locator->set("revision_manager", $revisionManager);
+$revisionManager->reload();
 
 // create dispatcher and register it into service locator
 $dispatcher = new PDM_Dispatcher();

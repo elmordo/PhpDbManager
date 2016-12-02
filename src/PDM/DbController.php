@@ -30,9 +30,16 @@ class PDM_DbController extends PDM_AbstractController
             return;
         }
 
-
         $manager->updateTo($heads[0]);
-        $manager->save();
+        $this->getSL()->get("settings")->save();
+    }
+
+    public function reapplyAction(array $params)
+    {
+        $manager = $this->getSL()->get("revision_manager");
+        $manager->reapplyCurrentRevision();
+
+        $this->getSL()->get("settings")->save();
     }
 
     public function revertAction(array $params)
@@ -47,7 +54,7 @@ class PDM_DbController extends PDM_AbstractController
 
     public function getActions()
     {
-        return [ "update", "revert" ];
+        return [ "update", "revert", "reapply" ];
     }
 
     public function getActionDescription($actionName)
@@ -57,6 +64,9 @@ class PDM_DbController extends PDM_AbstractController
 
             case "update":
             return "Apply changes to latest revision";
+
+            case "reapply":
+            return "Revert current revision and apply it again";
 
             case "revert":
             return "Do nothing yet";

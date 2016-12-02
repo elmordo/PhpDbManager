@@ -86,6 +86,45 @@ class PDM_RevisionManager extends PDM_Injectable
         return $revision;
     }
 
+    public function reapplyCurrentRevision()
+    {
+        $settings = $this->getSL()->get("settings");
+        $connection = $this->getSL()->get("db");
+        $revision = $this->getCurrentRevision();
+
+        if ($revision !== null)
+        {
+            $parents = $revision->getInfo()->parents;
+
+            if (count($parents) > 1)
+            {
+                echo "Unable to reapply merge revision" . PHP_EOL;
+                return;
+            }
+
+            // reapply data
+            $dir = $settings->getDirectory();
+            $name = $revision->getRevisionName();
+
+            $revertFile = sprintf("%s/%s%s", $dir, $name, self::SUFFIX_REVERT);
+            $applyFile = sprintf("%s/%s%s", $dir, $name, self::SUFFIX_APPLY);
+
+            $this->applyFile($revertFile, $connection, true);
+
+            if (!$this->applyFile($applyFile, $connection))
+            {
+                // reapply failed - set parent of current revision as new current revision
+                echo "Error in reapplying revision " . $name .
+                    ". Parent of this revision will be current revision now" . PHP_EOL;
+                $settings->currentRevision = $parents ? $parents[0] : null;
+            }
+        }
+        else
+        {
+            echo "No revision to reapply" . PHP_EOL;
+        }
+    }
+
     public function updateTo($revision)
     {
         $settings = $this->getSL()->get("settings");
@@ -95,6 +134,7 @@ class PDM_RevisionManager extends PDM_Injectable
         $connection = $this->getSL()->get("db");
         $connection->beginTransaction();
         $revert = false;
+        $revisionDir = $settings->getDirectory();
 
         try
         {
@@ -104,7 +144,7 @@ class PDM_RevisionManager extends PDM_Injectable
                 $revisionName = $revisions[$i];
                 $currentRevision = $this->revisionInstances[$revisionName];
 
-                $updateFileName = $this->path . $revisionName . self::SUFFIX_APPLY;
+                $updateFileName = $revisionDir . "/" . $revisionName . self::SUFFIX_APPLY;
 
                 if (!$this->applyFile($updateFileName, $connection))
                 {
@@ -113,7 +153,7 @@ class PDM_RevisionManager extends PDM_Injectable
                 }
             }
 
-            $this->currentRevision = $revision;
+            $settings->currentRevision = $revision;
             $connection->commit();
         }
         catch (\Exception $e)
@@ -142,35 +182,12 @@ class PDM_RevisionManager extends PDM_Injectable
     }
 
     /**
-     * reload manager data
-     * @param  boolean $autoInit initialize directory if config
-     *                            file does not exists
+     * refresh manager data
      */
-    public function reload($autoInit=true)
+    public function reload()
     {
-        // load config file
-        if (!file_exists($this->path . self::CONFIG_FILE))
-        {
-            if ($autoInit)
-            {
-                $this->initializeDirectory();
-            }
-            else
-            {
-                throw new PDM_Exception("Directory is not initialized");
-            }
-        }
-
-        // load config file
-        $config = json_decode(file_get_contents(
-            $this->path . self::CONFIG_FILE), true);
-
-        $this->revisions = $config["revisions"];
-        $this->revisionPatterns = $config["revision_patterns"];
-        $this->currentRevision = $config["current_revision"];
-        $this->dbParams = $config["db_params"];
-
-        $this->reloadRevisions();
+        $settings = $this->getSL()->get("settings");
+        $this->reloadRevisions($settings);
     }
 
     public function rescanDirectory()
@@ -199,10 +216,11 @@ class PDM_RevisionManager extends PDM_Injectable
     public function getNotAppliedHeads()
     {
         $heads = array();
+        $currentRevision = $this->getSL()->get("settings")->currentRevision;
 
         foreach ($this->heads as $head)
         {
-            if ($this->currentRevision != $head)
+            if ($currentRevision != $head)
             {
                 $heads[] = $head;
             }
@@ -217,7 +235,8 @@ class PDM_RevisionManager extends PDM_Injectable
      */
     public function getCurrentRevision()
     {
-        return $this->settings->currentRevision;
+        $currentRevision = $this->getSL()->get("settings")->currentRevision;
+        return is_null($currentRevision) ? null : $this->revisionInstances[$currentRevision];
     }
 
     /**
@@ -270,20 +289,21 @@ class PDM_RevisionManager extends PDM_Injectable
     /**
      * reload revision info from list of revisions
      */
-    private function reloadRevisions()
+    private function reloadRevisions(PDM_Settings $settings)
     {
         // reset data and load items
         $this->revisionInstances = array();
+        $directory = $settings->getDirectory();
 
-        foreach ($this->revisions as $revisionName)
+        foreach ($settings->revisions as $revisionName)
         {
             // create and register revision
-            $revision = new PDM_Revision($this->path, $revisionName);
+            $revision = new PDM_Revision($directory, $revisionName);
 
             $this->revisionInstances[$revisionName] = $revision;
 
             // test filles
-            $basePath = $this->path . $revisionName;
+            $basePath = $directory . $revisionName;
 
             if (is_file($basePath . self::SUFFIX_APPLY))
                 $revision->setFoundStatus(PDM_Revision::FILE_ASQL, true);
@@ -348,36 +368,15 @@ class PDM_RevisionManager extends PDM_Injectable
         }
     }
 
-    /**
-     * create instance of manager
-     * @param  string $path path to directory with revisions
-     * @param  boolean $loadData auto load data
-     * @return PDM_RevisionManager       manager instance
-     */
-    public static function createManager($path, $loadData=true)
-    {
-        $path = PDM_Utils::normalizeDirPath($path);
-
-        $dir = dir($path);
-
-        while ($fileName = $dir->read())
-        {
-            $fullName = $path . $fileName;
-        }
-
-        $manager = new self($path);
-
-        if ($loadData)
-        {
-            $manager->reload();
-        }
-
-        return $manager;
-    }
-
     private function applyFile($fileName, $connection, $force=false)
     {
         $retVal = true;
+
+        if (!is_file($fileName))
+        {
+            printf("File '%s' was not found" . PHP_EOL, $fileName);
+            return false;
+        }
 
         // read file and split it into statements
         $sql = file_get_contents($fileName);
