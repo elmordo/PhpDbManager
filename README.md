@@ -31,7 +31,7 @@ To print help, run `php pdm.php`. Output of this command is list of operation gr
 
 Only supported action is `init`. This action is described above.
 
-###`revision`
+###`revision` command
 
 Revision command group supports following two actions:
 
