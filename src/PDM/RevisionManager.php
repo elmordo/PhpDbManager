@@ -303,7 +303,7 @@ class PDM_RevisionManager extends PDM_Injectable
             $this->revisionInstances[$revisionName] = $revision;
 
             // test filles
-            $basePath = $directory . $revisionName;
+            $basePath = $directory . "/" . $revisionName;
 
             if (is_file($basePath . self::SUFFIX_APPLY))
                 $revision->setFoundStatus(PDM_Revision::FILE_ASQL, true);
